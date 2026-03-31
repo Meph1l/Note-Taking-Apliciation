@@ -20,6 +20,6 @@ public class Login {
     
     private static boolean authenticate(String username, String password) {
         // Check Login
-        return username.equals("admin") && password.equals("password");
+        return username.equal("admin") && password.equal("password");
     }
 }

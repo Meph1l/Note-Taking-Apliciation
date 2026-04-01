@@ -8,7 +8,7 @@ Guide to installation:
   • npm -v
 4. Download MySQL https://dev.mysql.com/downloads/installer/
 5. Setup a localhost:(any port besides 8800) and set the password to 123456
-6.Create a crud_app database
+6. Create a crud_app database
 7. Open Visual Studio Code and create a folder called backend
 8. Open the integrated terminal for this folder and type in npm init -y
 9. Install the required dependencies, npm install express mysql nodemon

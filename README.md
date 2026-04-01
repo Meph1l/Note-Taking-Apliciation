@@ -17,3 +17,5 @@ Guide to installation:
 12. Download the required dependencies npm install react-router-dom and npm install bootstrap@v5.3.8
 13. Replace backend files with index.js, package-lock.json, and package.json
 14. Replace the src file in client with src file here.
+
+Follow this guide if lost: https://www.youtube.com/watch?v=fPuLnzSjPLE&

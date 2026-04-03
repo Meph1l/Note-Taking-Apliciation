@@ -27,7 +27,7 @@ const Login = () => {
 
         <button class="btn btn-primary btn-full" id="login-btn">Login</button>
         <a href="#" class="forgot-link">Forgot password?</a>
-        <a href="register.html" class="forgot-link">Register</a>
+        <a href="Register" class="forgot-link">Register</a>
 
         <hr class="login-divider" />
     </div>

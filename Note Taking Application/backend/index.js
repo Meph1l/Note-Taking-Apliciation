@@ -12,6 +12,7 @@ const db = mysql.createConnection({
 })
 
 app.use(express.json())
+app.use(cors())
 
 db.connect((err) => {
     if (err) throw (err);
@@ -24,7 +25,7 @@ app.get("/", (req, res)=>{
 })
 
 app.get("/logins", (req,res)=>{
-    const q = "SELECT * FROM logins"
+    const q = "SELECT * FROM users"
     db.query(q,(err,data)=>{
         if(err) return res.json(err)
         return res.json(data)
@@ -33,7 +34,7 @@ app.get("/logins", (req,res)=>{
 
 //Insert (?) provides backend security
 app.post("/logins", (req,res)=>{
-    const q = "INSERT INTO logins (`user`,`password`, `email`) VALUES (?)"
+    const q = "INSERT INTO users (`user`,`password`, `email`) VALUES (?)"
     const values = [
         req.body.user,
         req.body.password,
@@ -46,6 +47,13 @@ app.post("/logins", (req,res)=>{
     });
 });
 
+app.get("/registers", (req,res)=>{
+    const q = "SELECT * FROM users"
+    db.query(q,(err,data)=>{
+        if(err) return res.json(err)
+        return res.json(data)
+    })
+})
 app.listen(8800, ()=>{
     console.log("Connected to backend!")
 })

@@ -1,5 +1,5 @@
 import express from "express"
-import mysql, { createConnection } from "mysql"
+import mysql, { createConnection } from "mysql2"
 import cors from "cors";
 
 const app = express()
@@ -7,7 +7,7 @@ const app = express()
 const db = mysql.createConnection({
     host:"localhost",
     user:"root",
-    password:"123456",
+    password:"1234",
     database:"crud_app"
 })
 

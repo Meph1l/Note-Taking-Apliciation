@@ -149,8 +149,9 @@ CREATE TABLE `notes` (
   `title` varchar(45) NOT NULL,
   `content` longtext NOT NULL,
   `dateCreated` datetime NOT NULL,
-  `modifiedDate` datetime NOT NULL,
+  `modifiedDate` datetime NULL,
   `historyId` int NOT NULL,
+  `userID` int NOT NULL,
   PRIMARY KEY (`noteId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

@@ -2,9 +2,19 @@
 // Place this file at: frontend/src/pages/Folders.js
 
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import "./Folders.css";
+import { getAuthHeaders, getCurrentUser, logout } from "../Services/authApi.js";
+import {
+  createTag as createTagApi,
+  getNotesByTag as getNotesByTagApi,
+  getTagsByNote,
+  getTagsByUser,
+  removeTagFromNote as removeTagFromNoteApi,
+  updateTag as updateTagApi,
+} from "../Services/tagApi.js";
 
-const API = "http://localhost:8080/api";
+const API = "http://localhost:8800/api";
 
 // ─── Small helper components ──────────────────────────────────────────────────
 
@@ -20,9 +30,9 @@ function FolderNode({ folder, selectedId, onSelect, onRename, onDelete, onCreate
         <span className="folder-icon">📁</span>
         <span className="folder-name">{folder.folderName}</span>
         <div className="folder-actions" onClick={(e) => e.stopPropagation()}>
-          <button className="btn-icon" title="Create sub-folder" onClick={() => onCreateSub(folder.folderId)}>＋</button>
-          <button className="btn-icon" title="Rename" onClick={() => onRename(folder.folderId, folder.folderName)}>✏️</button>
-          <button className="btn-icon danger" title="Delete" onClick={() => onDelete(folder.folderId, folder.folderName)}>🗑</button>
+          <button type="button" className="btn-icon" title="Create sub-folder" onClick={() => onCreateSub(folder.folderId)}>＋</button>
+          <button type="button" className="btn-icon" title="Rename" onClick={() => onRename(folder.folderId, folder.folderName)}>✏️</button>
+          <button type="button" className="btn-icon danger" title="Delete" onClick={() => onDelete(folder.folderId, folder.folderName)}>🗑</button>
         </div>
       </div>
 
@@ -46,42 +56,171 @@ function FolderNode({ folder, selectedId, onSelect, onRename, onDelete, onCreate
 // ─── Main Folders Page ────────────────────────────────────────────────────────
 
 export default function Folders() {
-  // Hard-coded userId=1 (Galen) for demo – swap with real auth later
-  const userId = 1;
+  const navigate = useNavigate();
 
   const [folderTree,      setFolderTree]      = useState([]);
-  const [selectedFolder,  setSelectedFolder]  = useState(null);
-  const [notesInFolder,   setNotesInFolder]   = useState([]);
+  const [allNotes,        setAllNotes]        = useState({}); // {folderId: [notes], null: [unfolderedNotes]}
+  const [selectedNote,    setSelectedNote]    = useState(null);
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [statusMsg,       setStatusMsg]       = useState("");
   const [loading,         setLoading]         = useState(false);
+  const [noteTags,        setNoteTags]        = useState([]);
+  const [availableTags,   setAvailableTags]   = useState([]);
+  const [selectedTagId,   setSelectedTagId]   = useState("");
+  const [activeTagFilter, setActiveTagFilter] = useState(null);
+  const [filteredNotes,   setFilteredNotes]   = useState([]);
 
   // Modal state
   const [modal, setModal] = useState(null);
-  // modal = { type: "create"|"createSub"|"rename"|"delete"|"move",
+  const [noteActionTargetFolder, setNoteActionTargetFolder] = useState(null);
+  // modal = { type: "create"|"createNote"|"createSub"|"rename"|"delete"|"move",
   //           folderId?, oldName?, noteId? }
   const [inputValue, setInputValue] = useState("");
+  const [createNoteTitle, setCreateNoteTitle] = useState("untitled");
+  const [createNoteContent, setCreateNoteContent] = useState("");
+
+  useEffect(() => {
+    if (!getCurrentUser()) {
+      logout();
+      navigate("/login");
+    }
+  }, [navigate]);
 
   // ─── Data fetching ───────────────────────────────────────────────────────────
 
   const fetchTree = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`${API}/folders/tree?userId=${userId}`);
-    const data = await res.json();
-    setFolderTree(data);
-    setLoading(false);
-  }, [userId]);
+    try {
+      const res = await fetch(`${API}/folders`, {
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
 
-  const fetchNotes = useCallback(async (folderId) => {
-    const res = await fetch(`${API}/folders/${folderId}/notes`);
-    const data = await res.json();
-    setNotesInFolder(data);
+      if (res.status === 401) {
+        logout();
+        navigate("/login");
+        return;
+      }
+
+      const tree = buildTree(data || []);
+      setFolderTree(tree);
+    } catch (error) {
+      console.error("Error fetching folders:", error);
+      setFolderTree([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [navigate]);
+
+  const fetchAllNotes = useCallback(async () => {
+    try {
+      const res = await fetch(`${API}/notes`, {
+        headers: getAuthHeaders()
+      });
+      const data = await res.json();
+
+      if (res.status === 401) {
+        logout();
+        navigate("/login");
+        return;
+      }
+      
+      // Group notes by folderId
+      const grouped = {};
+      data.forEach(note => {
+        const folderId = note.folderId;
+        if (!grouped[folderId]) {
+          grouped[folderId] = [];
+        }
+        grouped[folderId].push(note);
+      });
+      
+      setAllNotes(grouped);
+    } catch (error) {
+      console.error("Error fetching all notes:", error);
+      setAllNotes({});
+    }
+  }, [navigate]);
+
+  const fetchTagsForNote = useCallback(async (noteId) => {
+    if (!noteId) {
+      setNoteTags([]);
+      return;
+    }
+
+    try {
+      const tags = await getTagsByNote(noteId);
+      setNoteTags(tags);
+    } catch (error) {
+      console.error("Error fetching note tags:", error);
+      if (error.message === "Authentication required" || error.message === "Invalid or expired token") {
+        logout();
+        navigate("/login");
+        return;
+      }
+      setNoteTags([]);
+    }
+  }, [navigate]);
+
+  const fetchAvailableTags = useCallback(async () => {
+    try {
+      const tags = await getTagsByUser();
+      setAvailableTags(tags);
+      return tags;
+    } catch (error) {
+      console.error("Error fetching all tags:", error);
+      if (error.message === "Authentication required" || error.message === "Invalid or expired token") {
+        logout();
+        navigate("/login");
+        return [];
+      }
+      setAvailableTags([]);
+      return [];
+    }
+  }, [navigate]);
+
+  const applyTagFilter = useCallback(async (tagId, fallbackName = "") => {
+    try {
+      const data = await getNotesByTagApi(tagId);
+      setActiveTagFilter(data.tag || { tagId, tagName: fallbackName });
+      setFilteredNotes(data.notes || []);
+    } catch (error) {
+      console.error("Error filtering notes by tag:", error);
+      showStatus(error.message || "Error filtering notes by tag.", true);
+    }
   }, []);
 
-  useEffect(() => { fetchTree(); }, [fetchTree]);
+  useEffect(() => { 
+    fetchTree(); 
+    fetchAllNotes();
+    fetchAvailableTags();
+  }, [fetchTree, fetchAllNotes, fetchAvailableTags]);
+
   useEffect(() => {
-    if (selectedFolder) fetchNotes(selectedFolder);
-    else setNotesInFolder([]);
-  }, [selectedFolder, fetchNotes]);
+    if (selectedNote?.noteId) {
+      fetchTagsForNote(selectedNote.noteId);
+    } else {
+      setNoteTags([]);
+    }
+  }, [selectedNote?.noteId, fetchTagsForNote]);
+
+  // ─── Folder expansion and note selection handlers ────────────────────────────
+
+  const toggleFolderExpansion = (folderId) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(folderId)) {
+        newSet.delete(folderId);
+      } else {
+        newSet.add(folderId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectNote = (note) => {
+    setSelectedNote(note);
+  };
 
   // ─── Status message helper ────────────────────────────────────────────────────
 
@@ -92,159 +231,426 @@ export default function Folders() {
 
   // ─── Modal handlers ──────────────────────────────────────────────────────────
 
-  const openCreate    = ()           => { setModal({ type: "create" });               setInputValue(""); };
-  const openCreateSub = (folderId)   => { setModal({ type: "createSub", folderId }); setInputValue(""); };
-  const openRename    = (id, name)   => { setModal({ type: "rename", folderId: id }); setInputValue(name); };
-  const openDelete    = (id, name)   => { setModal({ type: "delete", folderId: id, folderName: name }); };
-  const closeModal    = ()           => { setModal(null); setInputValue(""); };
+  const closeModal = () => {
+    setModal(null);
+    setInputValue("");
+    setCreateNoteTitle("untitled");
+    setCreateNoteContent("");
+    setSelectedTagId("");
+  };
+  const openCreateFolderModal = () => { setInputValue(""); setModal({ type: "create" }); };
+  const openCreateNoteModal = () => { setCreateNoteTitle("untitled"); setCreateNoteContent(""); setModal({ type: "createNote" }); };
+  const openCreateTagModal = () => {
+    if (!selectedNote) {
+      showStatus("Select a note first.", true);
+      return;
+    }
+
+    setInputValue("");
+    setModal({ type: "createTag" });
+  };
+  const openFilterTagModal = async () => {
+    const tags = await fetchAvailableTags();
+
+    if (!tags || tags.length === 0) {
+      showStatus("Create a tag first before filtering notes.", true);
+      return;
+    }
+
+    const defaultTag = noteTags[0] || tags[0];
+    setSelectedTagId(String(defaultTag.tagId));
+    setModal({ type: "filterTag" });
+  };
+  const openEditTagModal = () => {
+    if (!selectedNote) {
+      showStatus("Select a note first.", true);
+      return;
+    }
+
+    if (noteTags.length === 0) {
+      showStatus("This note has no tags yet.", true);
+      return;
+    }
+
+    setSelectedTagId(String(noteTags[0].tagId));
+    setInputValue(noteTags[0].tagName);
+    setModal({ type: "editTag" });
+  };
+
+  const handleClearTagFilter = () => {
+    setActiveTagFilter(null);
+    setFilteredNotes([]);
+  };
 
   // UC-18: Create Folder
   const handleCreate = async () => {
     if (!inputValue.trim()) return;
-    const body = { folderName: inputValue.trim(), userId };
+    const body = { folderName: inputValue.trim() };
     const res = await fetch(`${API}/folders`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+      method: "POST", headers: getAuthHeaders(true), body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (res.ok) { showStatus("Folder created!"); fetchTree(); closeModal(); }
-    else        { showStatus(data.error || "Error creating folder.", true); }
-  };
-
-  // UC-18: Create Sub-Folder
-  const handleCreateSub = async () => {
-    if (!inputValue.trim()) return;
-    const body = { folderName: inputValue.trim(), userId, parentFolderId: modal.folderId };
-    const res = await fetch(`${API}/folders`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (res.ok) { showStatus("Sub-folder created!"); fetchTree(); closeModal(); }
-    else        { showStatus(data.error || "Error.", true); }
-  };
-
-  // UC-20: Rename Folder
-  const handleRename = async () => {
-    if (!inputValue.trim()) return;
-    const res = await fetch(`${API}/folders/${modal.folderId}`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folderName: inputValue.trim() }),
-    });
-    if (res.ok) { showStatus("Folder renamed!"); fetchTree(); closeModal(); }
-    else        { showStatus("Error renaming folder.", true); }
-  };
-
-  // UC-19: Delete Folder
-  const handleDelete = async () => {
-    const res = await fetch(`${API}/folders/${modal.folderId}`, { method: "DELETE" });
     if (res.ok) {
-      showStatus("Folder deleted.");
-      if (selectedFolder === modal.folderId) setSelectedFolder(null);
+      showStatus("Folder created!");
       fetchTree();
-      closeModal();
+      setModal(null);
+      setInputValue("");
     } else {
-      showStatus("Error deleting folder.", true);
+      showStatus(data.error || "Error creating folder.", true);
     }
   };
 
-  // UC-13: Move Note to Another Folder
-  const handleMoveNote = async (noteId, targetFolderId) => {
-    const res = await fetch(`${API}/notes/${noteId}/move`, {
-      method: "PUT", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folderId: targetFolderId || null }),
+  const handleCreateNote = async () => {
+    const title = createNoteTitle.trim() || "untitled";
+    const body = {
+      title,
+      content: createNoteContent || "",
+      folderId: null,
+    };
+
+    const res = await fetch(`${API}/notes`, {
+      method: "POST",
+      headers: getAuthHeaders(true),
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      showStatus("Note created!");
+      fetchAllNotes();
+      setModal(null);
+      setCreateNoteTitle("untitled");
+      setCreateNoteContent("");
+      if (data.note) {
+        setSelectedNote(data.note);
+      }
+    } else {
+      showStatus(data.error || "Error creating note.", true);
+    }
+  };
+
+  // Save Note Changes
+  const handleSaveNote = async () => {
+    if (!selectedNote) return;
+    
+    const body = { 
+      title: selectedNote.title, 
+      content: selectedNote.content || '' 
+    };
+    
+    const res = await fetch(`${API}/notes/${selectedNote.noteId}`, {
+      method: "PUT", 
+      headers: getAuthHeaders(true), 
+      body: JSON.stringify(body),
+    });
+    
+    if (res.ok) { 
+      showStatus("Note saved!");
+      fetchAllNotes(); // Refresh notes to show updated data
+    } else {
+      showStatus("Error saving note.", true);
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!selectedNote || !inputValue.trim()) return;
+
+    try {
+      const data = await createTagApi(inputValue.trim(), selectedNote.noteId);
+      showStatus(data.message || "Tag saved!");
+      await fetchTagsForNote(selectedNote.noteId);
+      await fetchAvailableTags();
+      closeModal();
+    } catch (error) {
+      showStatus(error.message || "Error creating tag.", true);
+    }
+  };
+
+  const handleApplyTagFilter = async () => {
+    if (!selectedTagId) return;
+
+    const matchingTag = availableTags.find((tag) => String(tag.tagId) === String(selectedTagId))
+      || noteTags.find((tag) => String(tag.tagId) === String(selectedTagId));
+
+    await applyTagFilter(selectedTagId, matchingTag?.tagName || "Selected Tag");
+    closeModal();
+  };
+
+  const handleEditTag = async () => {
+    if (!selectedNote || !selectedTagId || !inputValue.trim()) return;
+
+    try {
+      await updateTagApi(selectedTagId, inputValue.trim());
+      showStatus("Tag updated!");
+      await fetchTagsForNote(selectedNote.noteId);
+      await fetchAvailableTags();
+
+      if (activeTagFilter && Number(selectedTagId) === Number(activeTagFilter.tagId)) {
+        await applyTagFilter(selectedTagId, inputValue.trim());
+      }
+
+      closeModal();
+    } catch (error) {
+      showStatus(error.message || "Error updating tag.", true);
+    }
+  };
+
+  const handleRemoveTag = async (tagId) => {
+    if (!selectedNote) return;
+
+    try {
+      await removeTagFromNoteApi(tagId, selectedNote.noteId);
+      showStatus("Tag removed from note.");
+      await fetchTagsForNote(selectedNote.noteId);
+      await fetchAvailableTags();
+
+      if (activeTagFilter && Number(tagId) === Number(activeTagFilter.tagId)) {
+        await applyTagFilter(tagId, activeTagFilter.tagName);
+      }
+    } catch (error) {
+      showStatus(error.message || "Error removing tag.", true);
+    }
+  };
+
+  const openNoteActions = (note) => {
+    setNoteActionTargetFolder(note.folderId ?? "");
+    setModal({ type: "noteActions", note });
+  };
+
+  const handleMoveNoteToFolder = async () => {
+    if (!modal?.note) return;
+    const folderId = noteActionTargetFolder === "" ? null : Number(noteActionTargetFolder);
+    const res = await fetch(`${API}/notes/${modal.note.noteId}/move`, {
+      method: "PUT",
+      headers: getAuthHeaders(true),
+      body: JSON.stringify({ folderId }),
     });
     if (res.ok) {
       showStatus("Note moved!");
-      if (selectedFolder) fetchNotes(selectedFolder);
+      fetchAllNotes();
+      setModal(null);
     } else {
       showStatus("Error moving note.", true);
     }
   };
 
+  const handleDeleteNote = async () => {
+    if (!modal?.note) return;
+    const res = await fetch(`${API}/notes/${modal.note.noteId}`, {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    });
+    if (res.ok) {
+      showStatus("Note deleted!");
+      if (selectedNote?.noteId === modal.note.noteId) setSelectedNote(null);
+      fetchAllNotes();
+
+      if (activeTagFilter) {
+        await applyTagFilter(activeTagFilter.tagId, activeTagFilter.tagName);
+      }
+
+      setModal(null);
+    } else {
+      showStatus("Error deleting note.", true);
+    }
+  };
+
   // ─── Render ──────────────────────────────────────────────────────────────────
+
+  // Helper function to render folder tree item
+  const renderFolderItem = (folder) => {
+    const isExpanded = expandedFolders.has(folder.folderId);
+    const notesInFolder = allNotes[folder.folderId] || [];
+    
+    return (
+      <div key={folder.folderId} className="folder-tree-item">
+        <div 
+          className="folder-tree-row"
+          onClick={() => toggleFolderExpansion(folder.folderId)}
+        >
+          <span className="folder-toggle">
+            {notesInFolder.length > 0 ? (isExpanded ? '▼' : '▶') : '📁'}
+          </span>
+          <span className="folder-name">{folder.folderName}</span>
+          <span className="note-count">({notesInFolder.length})</span>
+        </div>
+        
+        {isExpanded && notesInFolder.length > 0 && (
+          <div className="folder-notes">
+            {notesInFolder.map(note => (
+              <div 
+                key={note.noteId} 
+                className={`note-tree-item${selectedNote?.noteId === note.noteId ? ' selected-note' : ''}`}
+              >
+                <button type="button" className="note-tree-link" onClick={() => selectNote(note)}>
+                  📄 {note.title}
+                </button>
+                <button type="button" className="note-action-btn" onClick={(e) => { e.stopPropagation(); openNoteActions(note); }}>
+                  …
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Render sub-folders recursively */}
+        {folder.subFolders && folder.subFolders.map((sub) => (
+          <div key={sub.folderId} className="sub-folder">
+            {renderFolderItem(sub)}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="folders-page">
 
-      {/* ── Left Panel: Folder Tree ─────────────────────────── */}
+      {/* ── Left Panel: Folder Tree & Notes ────────────────────────────── */}
       <div className="panel panel-left">
         <div className="panel-header">
-          <h2>📂 Folders</h2>
-          <button className="btn-primary" onClick={openCreate}>＋ New Folder</button>
+          <h2>📂 My Notes</h2>
+          <div className="panel-header-actions">
+            <button type="button" className="btn-secondary btn-small" onClick={openCreateNoteModal}>＋ New Note</button>
+            <button type="button" className="btn-primary btn-small" onClick={openCreateFolderModal}>＋ New Folder</button>
+          </div>
         </div>
 
         {loading && <p className="hint">Loading…</p>}
 
-        {!loading && folderTree.length === 0 && (
-          <p className="hint">No folders yet. Create one!</p>
-        )}
+        {!loading && (
+          <div className="notes-tree">
+            {activeTagFilter ? (
+              <div className="tag-filter-view">
+                <div className="tag-filter-banner">
+                  <div className="tag-filter-info">
+                    <strong>🏷️ #{activeTagFilter.tagName}</strong>
+                    <span>Showing all notes with this tag</span>
+                  </div>
+                  <button type="button" className="btn-secondary btn-small" onClick={handleClearTagFilter}>
+                    Clear Filter
+                  </button>
+                </div>
 
-        <div className="folder-tree">
-          {folderTree.map((folder) => (
-            <FolderNode
-              key={folder.folderId}
-              folder={folder}
-              selectedId={selectedFolder}
-              onSelect={setSelectedFolder}
-              onRename={openRename}
-              onDelete={openDelete}
-              onCreateSub={openCreateSub}
-            />
-          ))}
-        </div>
+                <div className="folder-notes tag-filter-list">
+                  {filteredNotes.length > 0 ? (
+                    filteredNotes.map((note) => (
+                      <div
+                        key={note.noteId}
+                        className={`note-tree-item${selectedNote?.noteId === note.noteId ? ' selected-note' : ''}`}
+                      >
+                        <button type="button" className="note-tree-link" onClick={() => selectNote(note)}>
+                          📄 {note.title}
+                        </button>
+                        <button type="button" className="note-action-btn" onClick={(e) => { e.stopPropagation(); openNoteActions(note); }}>
+                          …
+                        </button>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="note-tags-empty">No notes found for this tag.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Folders */}
+                {folderTree.map((folder) => renderFolderItem(folder))}
+                
+                {/* Unfoldered Notes */}
+                <div className="unfoldered-section">
+                  <div className="unfoldered-header">
+                    <span className="folder-toggle">📄</span>
+                    <span className="folder-name">Unfoldered Notes</span>
+                    <span className="note-count">({(allNotes[null] || []).length})</span>
+                  </div>
+                  <div className="folder-notes">
+                    {(allNotes[null] || []).map(note => (
+                      <div 
+                        key={note.noteId} 
+                        className={`note-tree-item${selectedNote?.noteId === note.noteId ? ' selected-note' : ''}`}
+                      >
+                        <button type="button" className="note-tree-link" onClick={() => selectNote(note)}>
+                          📄 {note.title}
+                        </button>
+                        <button type="button" className="note-action-btn" onClick={(e) => { e.stopPropagation(); openNoteActions(note); }}>
+                          …
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* ── Right Panel: Notes in Selected Folder ──────────── */}
+      {/* ── Right Panel: Note Editor ───────────────────────────────────── */}
       <div className="panel panel-right">
-        {selectedFolder ? (
+        {selectedNote ? (
           <>
             <div className="panel-header">
-              <h2>📝 Notes in Folder</h2>
-            </div>
-
-            {notesInFolder.length === 0 ? (
-              <p className="hint">No notes in this folder yet.</p>
-            ) : (
-              <div className="notes-list">
-                {notesInFolder.map((note) => (
-                  <div key={note.noteId} className="note-card">
-                    <div className="note-card-header">
-                      <h3>{note.title}</h3>
-                      <span className="note-date">
-                        {note.modifiedDate
-                          ? new Date(note.modifiedDate).toLocaleDateString()
-                          : ""}
-                      </span>
-                    </div>
-                    <p className="note-preview">
-                      {note.content ? note.content.slice(0, 120) + (note.content.length > 120 ? "…" : "") : ""}
-                    </p>
-                    <div className="note-move">
-                      <label>Move to folder: </label>
-                      <select
-                        defaultValue=""
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val !== "") handleMoveNote(note.noteId, val === "none" ? null : parseInt(val));
-                          e.target.value = "";
-                        }}
-                      >
-                        <option value="" disabled>Select…</option>
-                        <option value="none">🚫 Remove from folder</option>
-                        {/* Flatten tree for dropdown */}
-                        {flattenTree(folderTree).map((f) => (
-                          <option key={f.folderId} value={f.folderId}>{f.folderName}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                ))}
+              <h2>📝 Edit Note</h2>
+              <div className="panel-header-actions note-tag-actions">
+                <button type="button" className="btn-secondary btn-small" onClick={openFilterTagModal}>
+                  🏷️ Filter Tag
+                </button>
+                <button type="button" className="btn-secondary btn-small" onClick={openEditTagModal}>
+                  ✏️ Edit Tag
+                </button>
+                <button type="button" className="btn-primary btn-small" onClick={openCreateTagModal}>
+                  ＋ Create Tag
+                </button>
               </div>
-            )}
+            </div>
+            <div className="note-editor">
+              <input
+                type="text"
+                className="note-title-input"
+                value={selectedNote.title}
+                onChange={(e) => setSelectedNote({...selectedNote, title: e.target.value})}
+                placeholder="Note title..."
+              />
+              <div className="note-tags-section">
+                <div className="note-tags-label">Tags</div>
+                <div className="note-tags-list">
+                  {noteTags.length > 0 ? (
+                    noteTags.map((tag) => (
+                      <span key={tag.tagId} className="tag-chip">
+                        #{tag.tagName}
+                        <button type="button" title="Remove tag from note" onClick={() => handleRemoveTag(tag.tagId)}>
+                          ×
+                        </button>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="note-tags-empty">No tags on this note yet.</span>
+                  )}
+                </div>
+              </div>
+              <textarea
+                className="note-content-input"
+                value={selectedNote.content || ''}
+                onChange={(e) => setSelectedNote({...selectedNote, content: e.target.value})}
+                placeholder="Note content..."
+              />
+              <div className="note-actions">
+                <button type="button" className="btn-primary" onClick={handleSaveNote}>
+                  Save Changes
+                </button>
+                <button type="button" className="btn-secondary" onClick={() => setSelectedNote(null)}>
+                  Close
+                </button>
+              </div>
+            </div>
           </>
         ) : (
-          <div className="empty-state">
-            <span>👈</span>
-            <p>Select a folder to see its notes.</p>
+          <div className="empty-editor">
+            <div className="empty-state">
+              <span>📝</span>
+              <p>Select a note from the left panel to start editing</p>
+            </div>
           </div>
         )}
       </div>
@@ -258,57 +664,154 @@ export default function Folders() {
 
       {/* ── Modal ──────────────────────────────────────────── */}
       {modal && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="folders-modal-overlay" onClick={closeModal}>
+          <div className="folders-modal" onClick={(e) => e.stopPropagation()}>
 
             {/* Create Folder */}
-            {(modal.type === "create" || modal.type === "createSub") && (
+            {modal.type === "create" && (
               <>
-                <h3>{modal.type === "create" ? "Create Folder" : "Create Sub-Folder"}</h3>
+                <h3>Create Folder</h3>
                 <input
                   autoFocus
                   type="text"
                   placeholder="Folder name"
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (modal.type === "create" ? handleCreate() : handleCreateSub())}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
                 />
                 <div className="modal-buttons">
-                  <button className="btn-primary" onClick={modal.type === "create" ? handleCreate : handleCreateSub}>
+                  <button type="button" className="btn-primary" onClick={handleCreate}>
                     Create
                   </button>
-                  <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+                  <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
                 </div>
               </>
             )}
 
-            {/* Rename Folder */}
-            {modal.type === "rename" && (
+            {modal.type === "createNote" && (
               <>
-                <h3>Rename Folder</h3>
+                <h3>Create Note</h3>
+                <label className="modal-label">Title</label>
                 <input
                   autoFocus
                   type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleRename()}
+                  placeholder="Note title"
+                  value={createNoteTitle}
+                  onChange={(e) => setCreateNoteTitle(e.target.value)}
+                />
+                <label className="modal-label">Content</label>
+                <textarea
+                  className="modal-textarea"
+                  rows={6}
+                  placeholder="Note content..."
+                  value={createNoteContent}
+                  onChange={(e) => setCreateNoteContent(e.target.value)}
                 />
                 <div className="modal-buttons">
-                  <button className="btn-primary" onClick={handleRename}>Rename</button>
-                  <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+                  <button type="button" className="btn-primary" onClick={handleCreateNote}>
+                    Create Note
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
                 </div>
               </>
             )}
 
-            {/* Delete Folder */}
-            {modal.type === "delete" && (
+            {modal.type === "createTag" && (
               <>
-                <h3>Delete Folder</h3>
-                <p>Delete <strong>"{modal.folderName}"</strong>?<br />
-                  Notes inside will be unassigned (not deleted). Sub-folders will be removed.</p>
+                <h3>Create Tag</h3>
+                <label className="modal-label">Tag name</label>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="e.g. urgent, school, ideas"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCreateTag()}
+                />
                 <div className="modal-buttons">
-                  <button className="btn-danger" onClick={handleDelete}>Delete</button>
-                  <button className="btn-secondary" onClick={closeModal}>Cancel</button>
+                  <button type="button" className="btn-primary" onClick={handleCreateTag}>
+                    Save Tag
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
+                </div>
+              </>
+            )}
+
+            {modal.type === "filterTag" && (
+              <>
+                <h3>Filter Notes by Tag</h3>
+                <label className="modal-label">Choose tag</label>
+                <select
+                  value={selectedTagId}
+                  onChange={(e) => setSelectedTagId(e.target.value)}
+                >
+                  {availableTags.map((tag) => (
+                    <option key={tag.tagId} value={tag.tagId}>{tag.tagName}</option>
+                  ))}
+                </select>
+                <div className="modal-buttons">
+                  <button type="button" className="btn-primary" onClick={handleApplyTagFilter}>
+                    Apply Filter
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
+                </div>
+              </>
+            )}
+
+            {modal.type === "editTag" && (
+              <>
+                <h3>Edit Tag</h3>
+                <label className="modal-label">Choose tag</label>
+                <select
+                  value={selectedTagId}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    setSelectedTagId(nextId);
+                    const matchingTag = noteTags.find((tag) => String(tag.tagId) === nextId);
+                    setInputValue(matchingTag?.tagName || "");
+                  }}
+                >
+                  {noteTags.map((tag) => (
+                    <option key={tag.tagId} value={tag.tagId}>{tag.tagName}</option>
+                  ))}
+                </select>
+                <label className="modal-label">New tag name</label>
+                <input
+                  type="text"
+                  placeholder="Rename tag"
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEditTag()}
+                />
+                <div className="modal-buttons">
+                  <button type="button" className="btn-primary" onClick={handleEditTag}>
+                    Update Tag
+                  </button>
+                  <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
+                </div>
+              </>
+            )}
+
+            {modal.type === "noteActions" && modal.note && (
+              <>
+                <h3>Note Actions</h3>
+                <p><strong>{modal.note.title}</strong></p>
+                <div className="folders-modal-field">
+                  <label>Move to folder</label>
+                  <select
+                    value={noteActionTargetFolder ?? ""}
+                    onChange={(e) => setNoteActionTargetFolder(e.target.value)}
+                  >
+                    <option value="">Unfoldered</option>
+                    {flattenTree(folderTree).map((folder) => (
+                      <option key={folder.folderId} value={folder.folderId}>{folder.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-buttons">
+                  <button type="button" className="btn-primary" onClick={handleMoveNoteToFolder}>Move</button>
+                  <button type="button" className="btn-danger" onClick={handleDeleteNote}>Delete</button>
+                  <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
                 </div>
               </>
             )}
@@ -320,15 +823,43 @@ export default function Folders() {
   );
 }
 
-// Flatten nested tree into flat array (for move-to-folder dropdown)
-function flattenTree(tree) {
+// Build nested tree from flat array
+function flattenTree(tree, prefix = "") {
   const result = [];
-  function walk(nodes) {
-    nodes.forEach((n) => {
-      result.push(n);
-      if (n.subFolders) walk(n.subFolders);
+  tree.forEach((folder) => {
+    result.push({
+      folderId: folder.folderId,
+      label: `${prefix}${folder.folderName}`,
     });
-  }
-  walk(tree);
+    if (folder.subFolders) {
+      result.push(...flattenTree(folder.subFolders, `${prefix}  `));
+    }
+  });
   return result;
+}
+
+function buildTree(flatFolders) {
+  const folderMap = {};
+  const roots = [];
+
+  // First pass: create map of all folders
+  flatFolders.forEach(folder => {
+    folderMap[folder.folderId] = { ...folder, subFolders: [] };
+  });
+
+  // Second pass: build tree structure
+  flatFolders.forEach(folder => {
+    if (folder.parentFolderId === null) {
+      // Root folder
+      roots.push(folderMap[folder.folderId]);
+    } else {
+      // Child folder
+      const parent = folderMap[folder.parentFolderId];
+      if (parent) {
+        parent.subFolders.push(folderMap[folder.folderId]);
+      }
+    }
+  });
+
+  return roots;
 }

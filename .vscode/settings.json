@@ -4,5 +4,9 @@
     ],
     "java.project.referencedLibraries": [
         "Note Taking Application/backend/src/dao/mysql-connector-j-9.6.0.jar"
-    ]
+    ],
+    "java.dependency.syncWithFolderExplorer": false,
+    "chat.tools.terminal.autoApprove": {
+        "npm start": true
+    }
 }

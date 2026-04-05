@@ -62,6 +62,13 @@ body {
   letter-spacing: 0.5px;
 }
 
+.app-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
 .app-nav-links {
   display: flex;
   gap: 8px;
@@ -81,4 +88,20 @@ body {
 .app-nav-links a.active {
   background: #3b82f6;
   color: #fff;
+}
+
+.app-nav-logout {
+  border: none;
+  background: #f87171;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.app-nav-logout:hover {
+  background: #ef4444;
 }

@@ -71,16 +71,6 @@ UNLOCK TABLES;
 -- Table structure for table `folderfoldernotes`
 --
 
-DROP TABLE IF EXISTS `folderfoldernotes`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `folderfoldernotes` (
-  `folderid` int NOT NULL,
-  `folderid2` int NOT NULL,
-  `noteid` int NOT NULL,
-  PRIMARY KEY (`folderid`,`folderid2`,`noteid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `folderfoldernotes`
@@ -154,6 +144,7 @@ CREATE TABLE IF NOT EXISTS notes (
     modifiedDate DATETIME     NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     historyId    INT          DEFAULT NULL,
     folderId     INT          DEFAULT NULL,   -- NEW: links note to a folder
+    userId		INT           NOT NULL,
     PRIMARY KEY (noteId),
     FOREIGN KEY (folderId) REFERENCES folder(folderId) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -178,10 +169,21 @@ DROP TABLE IF EXISTS `tag`;
 CREATE TABLE `tag` (
   `tagId` int NOT NULL AUTO_INCREMENT,
   `tagName` varchar(45) NOT NULL,
-  PRIMARY KEY (`tagId`)
+  `userId` int not null,
+  UNIQUE key (tagname),
+  PRIMARY KEY (`tagId`),
+  Foreign key (userId) references users(userid) on delete cascade
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+DROP table if exists `note_tags`;
+CREATE TABLE note_tags (
+  noteId INT NOT NULL,
+  tagId  INT NOT NULL,
+  PRIMARY KEY (noteId, tagId),
+  FOREIGN KEY (noteId) REFERENCES notes(noteId) ON DELETE CASCADE,
+  FOREIGN KEY (tagId) REFERENCES tag(tagId) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 --
 -- Dumping data for table `tag`
 --
@@ -195,27 +197,11 @@ UNLOCK TABLES;
 -- Table structure for table `usernotesfoldersgraphs`
 --
 
-DROP TABLE IF EXISTS `usernotesfoldersgraphs`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `usernotesfoldersgraphs` (
-  `userId` int NOT NULL,
-  `noteId` int NOT NULL,
-  `folderId` int NOT NULL,
-  `graphId` int NOT NULL,
-  PRIMARY KEY (`userId`,`noteId`,`folderId`,`graphId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Dumping data for table `usernotesfoldersgraphs`
 --
 
-LOCK TABLES `usernotesfoldersgraphs` WRITE;
-/*!40000 ALTER TABLE `usernotesfoldersgraphs` DISABLE KEYS */;
-INSERT INTO `usernotesfoldersgraphs` VALUES (1,1,1,1),(1,2,1,1),(1,3,1,1);
-/*!40000 ALTER TABLE `usernotesfoldersgraphs` ENABLE KEYS */;
-UNLOCK TABLES;
 
 INSERT IGNORE INTO folder (folderId, folderName, userId, parentFolderId) VALUES
 (1, 'Lecture Notes',  1, NULL),
@@ -227,11 +213,11 @@ INSERT IGNORE INTO folder (folderId, folderName, userId, parentFolderId) VALUES
 (4, 'Week 1', 1, 1);
 
 -- Sample notes assigned to folders
-INSERT IGNORE INTO notes (noteId, title, content, folderId) VALUES
-(1, 'Systems Design Intro',   'Today we covered UML diagrams and use-case modeling.', 1),
-(2, 'Assignment 1',           'Build a class diagram for the note-taking app.',       2),
-(3, 'Meeting Notes',          'Discussed folder module implementation.',               3),
-(4, 'Week 1 – Day 1',         'Introduction to the course.',                          4);
+INSERT IGNORE INTO notes (noteId, title, content, folderId, userId) VALUES
+(1, 'Systems Design Intro',   'Today we covered UML diagrams and use-case modeling.', 1,1),
+(2, 'Assignment 1',           'Build a class diagram for the note-taking app.',       2,1),
+(3, 'Meeting Notes',          'Discussed folder module implementation.',               3,1),
+(4, 'Week 1 – Day 1',         'Introduction to the course.',                          4,2);
 
 --
 -- Table structure for table `users`
@@ -242,7 +228,7 @@ DROP TABLE IF EXISTS `users`;
 /*!50503 SET character_set_client = utf8mb4 */;
 CREATE TABLE `users` (
   `userid` int NOT NULL AUTO_INCREMENT,
-  `user` varchar(45) NOT NULL,
+  `user` varchar(45) NULL,
   `email` varchar(45) NOT NULL,
   `password` varchar(45) NOT NULL,
   `loggedin` tinyint NOT NULL DEFAULT '0',

@@ -41,60 +41,251 @@
   color: #1a1a2e;
 }
 
-/* ─── Folder Tree ─────────────────────────────────────────────────────────── */
+.panel-header-actions {
+  display: flex;
+  gap: 10px;
+}
 
-.folder-tree {
+.note-tag-actions {
+  margin-left: auto;
+}
+
+.btn-small {
+  padding: 7px 12px;
+  font-size: 0.82rem;
+}
+
+.modal-label {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.modal-textarea {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 12px;
+  resize: vertical;
+  font-size: 0.95rem;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.modal-textarea:focus {
+  border-color: #3b82f6;
+}
+
+.note-tags-section {
+  margin: 12px 0 16px;
+}
+
+.note-tags-label {
+  margin-bottom: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.note-tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #e0f2fe;
+  color: #075985;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.tag-chip button {
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  cursor: pointer;
+  font-size: 0.95rem;
+  padding: 0;
+  line-height: 1;
+}
+
+.note-tags-empty {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.tag-filter-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.tag-filter-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #1e3a8a;
+  font-size: 0.85rem;
+}
+
+.tag-filter-list {
+  margin-left: 0;
+}
+
+/* ─── Notes Tree (Left Panel) ───────────────────────────────────────────── */
+
+.notes-tree {
   overflow-y: auto;
   flex: 1;
   padding: 12px 8px;
 }
 
-.folder-node { user-select: none; }
-
-.folder-row {
-  display: flex;
-  align-items: center;
-  padding: 8px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.15s;
-  gap: 8px;
+.folder-tree-item {
+  margin-bottom: 4px;
 }
 
-.folder-row:hover { background: #f0f4ff; }
-.folder-row.selected { background: #dbeafe; }
+.folder-tree-row {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+  gap: 6px;
+}
 
-.folder-icon { font-size: 1rem; }
+.folder-tree-row:hover { background: #f0f4ff; }
+
+.folder-toggle {
+  font-size: 0.8rem;
+  width: 16px;
+  text-align: center;
+  color: #666;
+}
 
 .folder-name {
   flex: 1;
   font-size: 0.9rem;
   color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 500;
 }
 
-.folder-actions {
-  display: flex;
-  gap: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
+.note-count {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-weight: 400;
 }
 
-.folder-row:hover .folder-actions { opacity: 1; }
+.folder-notes {
+  margin-left: 20px;
+  margin-top: 4px;
+}
 
-/* ─── Buttons ─────────────────────────────────────────────────────────────── */
-
-.btn-icon {
-  background: none;
-  border: none;
-  padding: 2px 6px;
+.note-tree-item {
+  padding: 4px 8px 4px 24px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.85rem;
   color: #555;
   transition: background 0.15s;
+}
+
+.note-tree-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  gap: 8px;
+}
+
+.note-tree-item:hover {
+  background: #e8f2ff;
+}
+
+.note-tree-item.selected-note {
+  background: #dbeafe;
+}
+
+.note-tree-link {
+  flex: 1;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  color: #1f2937;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+}
+
+.note-action-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #555;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.note-action-btn:hover {
+  background: #e2e8f0;
+}
+
+.sub-folder {
+  margin-left: 16px;
+}
+
+.unfoldered-section {
+  margin-top: 16px;
+  border-top: 1px solid #e8ecf0;
+  padding-top: 12px;
+}
+
+.unfoldered-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  gap: 6px;
+  font-weight: 500;
+  color: #666;
+}
+
+.create-folder-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 8px;
+}
+
+.inline-folder-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.inline-folder-input:focus {
+  border-color: #3b82f6;
 }
 
 .btn-icon:hover         { background: #e2e8f0; }
@@ -141,17 +332,6 @@
 }
 
 .btn-danger:hover { background: #dc2626; }
-
-/* ─── Notes List ──────────────────────────────────────────────────────────── */
-
-.notes-list {
-  overflow-y: auto;
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
 .note-card {
   border: 1px solid #e8ecf0;
@@ -207,41 +387,79 @@
   background: #fff;
 }
 
-/* ─── Empty / Hint States ────────────────────────────────────────────────── */
+/* ─── Note Editor (Right Panel) ─────────────────────────────────────────── */
 
-.hint {
-  color: #94a3b8;
-  font-size: 0.85rem;
-  padding: 16px;
-  text-align: center;
-}
-
-.empty-state {
+.note-editor {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1;
-  color: #94a3b8;
-  font-size: 0.9rem;
-  gap: 12px;
+  height: 100%;
+  padding: 20px;
+  gap: 16px;
 }
 
-.empty-state span { font-size: 3rem; }
+.note-title-input {
+  font-size: 1.5rem;
+  font-weight: 600;
+  border: none;
+  border-bottom: 2px solid #e8ecf0;
+  padding: 8px 0;
+  background: transparent;
+  outline: none;
+  color: #1a1a2e;
+  transition: border-color 0.2s;
+}
+
+.note-title-input:focus {
+  border-bottom-color: #3b82f6;
+}
+
+.note-content-input {
+  flex: 1;
+  border: 1px solid #e8ecf0;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 1rem;
+  line-height: 1.6;
+  background: #fafbfc;
+  outline: none;
+  resize: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.note-content-input:focus {
+  border-color: #3b82f6;
+  background: #fff;
+}
+
+.note-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #e8ecf0;
+}
+
+.empty-editor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
 
 /* ─── Modal ───────────────────────────────────────────────────────────────── */
 
-.modal-overlay {
+.folders-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
-.modal {
+.folders-modal {
   background: #fff;
   border-radius: 14px;
   padding: 28px;
@@ -250,6 +468,32 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.folders-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.folders-modal-field label {
+  font-size: 0.85rem;
+  color: #475569;
+  font-weight: 500;
+}
+
+.folders-modal select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.folders-modal select:focus {
+  border-color: #3b82f6;
 }
 
 .modal h3 {

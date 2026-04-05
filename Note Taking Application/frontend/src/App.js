@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Link, useLocation, useNavigate,
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Folders from "./pages/Folders";
+import MergeNotes from "./pages/MergeNotes";
+import GraphsList from "./pages/GraphsList";
 import { getCurrentUser, logout } from "./Services/authApi";
 
 function NavBar() {
@@ -22,6 +24,12 @@ function NavBar() {
       <span className="app-nav-logo">📓 NoteApp</span>
       <div className="app-nav-right">
         <div className="app-nav-links">
+          <Link to="/merge-notes" className={location.pathname === "/merge-notes" ? "active" : ""}>
+            🧩 Merge Notes
+          </Link>
+          <Link to="/graphs" className={location.pathname === "/graphs" ? "active" : ""}>
+            📈 Graphs
+          </Link>
           <Link to="/folders" className={location.pathname === "/folders" ? "active" : ""}>
             📂 Folders
           </Link>
@@ -53,6 +61,22 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route
+            path="/merge-notes"
+            element={
+              <ProtectedRoute>
+                <MergeNotes />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/graphs"
+            element={
+              <ProtectedRoute>
+                <GraphsList />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/folders"
             element={

@@ -99,16 +99,101 @@ CREATE TABLE `graph` (
 --
 -- Dumping data for table `graph`
 --
+ALTER TABLE graph
+  ADD COLUMN userId INT NULL AFTER graphname,
+  ADD COLUMN updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP AFTER dateCreated;
 
+ALTER TABLE graph
+  ADD CONSTRAINT fk_graph_user
+  FOREIGN KEY (userId) REFERENCES users(userid)
+  ON DELETE CASCADE;
 LOCK TABLES `graph` WRITE;
 /*!40000 ALTER TABLE `graph` DISABLE KEYS */;
 /*!40000 ALTER TABLE `graph` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
--- Table structure for table `notehistory`
---
-
+-- Save which tags were selected for the merge
+CREATE TABLE IF NOT EXISTS graph_tags (
+  graphId INT NOT NULL,
+  tagId INT NOT NULL,
+  PRIMARY KEY (graphId, tagId),
+  CONSTRAINT fk_graph_tags_graph
+    FOREIGN KEY (graphId) REFERENCES graph(graphId)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_graph_tags_tag
+    FOREIGN KEY (tagId) REFERENCES tag(tagId)
+    ON DELETE CASCADE
+);
+-- Save each note rectangle and its dragged position
+CREATE TABLE IF NOT EXISTS graph_nodes (
+  graphNodeId INT NOT NULL AUTO_INCREMENT,
+  graphId INT NOT NULL,
+  noteId INT NOT NULL,
+  posX DECIMAL(10,2) NOT NULL DEFAULT 0,
+  posY DECIMAL(10,2) NOT NULL DEFAULT 0,
+  width DECIMAL(10,2) NOT NULL DEFAULT 220,
+  height DECIMAL(10,2) NOT NULL DEFAULT 120,
+  displayOrder INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (graphNodeId),
+  UNIQUE KEY uq_graph_note_once (graphId, noteId),
+  CONSTRAINT fk_graph_nodes_graph
+    FOREIGN KEY (graphId) REFERENCES graph(graphId)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_graph_nodes_note
+    FOREIGN KEY (noteId) REFERENCES notes(noteId)
+    ON DELETE CASCADE
+);
+-- Save the connection lines between notes 
+CREATE TABLE IF NOT EXISTS graph_edges (
+  graphEdgeId INT NOT NULL AUTO_INCREMENT,
+  graphId INT NOT NULL,
+  sourceNodeId INT NOT NULL,
+  targetNodeId INT NOT NULL,
+  sharedTagId INT NULL,
+  relationType VARCHAR(30) NOT NULL DEFAULT 'shared_tag',
+  PRIMARY KEY (graphEdgeId),
+  UNIQUE KEY uq_graph_edge_once (graphId, sourceNodeId, targetNodeId),
+  CONSTRAINT fk_graph_edges_graph
+    FOREIGN KEY (graphId) REFERENCES graph(graphId)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_graph_edges_source
+    FOREIGN KEY (sourceNodeId) REFERENCES graph_nodes(graphNodeId)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_graph_edges_target
+    FOREIGN KEY (targetNodeId) REFERENCES graph_nodes(graphNodeId)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_graph_edges_tag
+    FOREIGN KEY (sharedTagId) REFERENCES tag(tagId)
+    ON DELETE SET NULL,
+  CONSTRAINT chk_graph_edges_no_self
+    CHECK (sourceNodeId <> targetNodeId)
+);
+-- Identify which notes are connected by shared tags.
+CREATE OR REPLACE VIEW vw_note_tag_relationships AS
+SELECT
+  n1.userId,
+  LEAST(n1.noteId, n2.noteId) AS sourceNoteId,
+  GREATEST(n1.noteId, n2.noteId) AS targetNoteId,
+  GROUP_CONCAT(DISTINCT t.tagName ORDER BY t.tagName SEPARATOR ', ') AS sharedTags,
+  COUNT(DISTINCT t.tagId) AS sharedTagCount
+FROM note_tags nt1
+JOIN note_tags nt2
+  ON nt1.tagId = nt2.tagId
+ AND nt1.noteId < nt2.noteId
+JOIN notes n1
+  ON n1.noteId = nt1.noteId
+JOIN notes n2
+  ON n2.noteId = nt2.noteId
+ AND n1.userId = n2.userId
+JOIN tag t
+  ON t.tagId = nt1.tagId
+ AND t.userId = n1.userId
+GROUP BY
+  n1.userId,
+  LEAST(n1.noteId, n2.noteId),
+  GREATEST(n1.noteId, n2.noteId);
 DROP TABLE IF EXISTS `notehistory`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;

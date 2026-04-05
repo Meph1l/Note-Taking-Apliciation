@@ -343,6 +343,31 @@
 
 .note-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
+.graph-list-card {
+  width: 100%;
+  margin-bottom: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.graph-list-card.active {
+  border-color: #60a5fa;
+  background: #eff6ff;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+}
+
+.graph-card-title {
+  margin: 0 0 6px;
+  font-size: 0.96rem;
+  color: #1a1a2e;
+}
+
+.graph-card-meta {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
 .note-card-header {
   display: flex;
   justify-content: space-between;

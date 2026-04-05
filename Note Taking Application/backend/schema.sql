@@ -250,3 +250,25 @@ UNLOCK TABLES;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
 -- Dump completed on 2026-04-02 22:55:12
+-- =========================================
+-- Yuhao Part 2: Tags + Search
+-- Add unique tag name and note_tag relation table
+-- =========================================
+
+-- Make tag names unique to avoid duplicate tag names
+ALTER TABLE `tag`
+ADD CONSTRAINT `unique_tag_name` UNIQUE (`tagName`);
+
+-- Create a many-to-many relation table between notes and tags
+CREATE TABLE `note_tag` (
+  `noteId` int NOT NULL,
+  `tagId` int NOT NULL,
+  PRIMARY KEY (`noteId`, `tagId`),
+  CONSTRAINT `fk_note_tag_note`
+    FOREIGN KEY (`noteId`) REFERENCES `notes` (`noteId`)
+    ON DELETE CASCADE,
+  CONSTRAINT `fk_note_tag_tag`
+    FOREIGN KEY (`tagId`) REFERENCES `tag` (`tagId`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+

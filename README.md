@@ -202,4 +202,4 @@ Possible next improvements:
 
 ## Author
 
-ITEC 4010 Note-Taking Application project.
+Charlie Chen, Wang Yuhao, Balraj Singh Kular, Gia Nguyen

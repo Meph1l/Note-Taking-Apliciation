@@ -1,5 +1,4 @@
 package models;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 public class Note {
  private int noteID; 
@@ -9,7 +8,7 @@ public class Note {
  private LocalDateTime modifiedDate;
  private int historyID;
  private int userID;
-
+ private int folderID;
 public Note(int u1){ 
     this.userID = u1;
     this.dateCreated = LocalDateTime.now();
@@ -18,6 +17,17 @@ public Note(int u1){
     this.modifiedDate= null;
 }
 public Note(int noteID, String title, String content, LocalDateTime d1,
+                LocalDateTime m1, int historyID, int userID, int folderID) {
+        this.noteID = noteID;
+        this.title = title;
+        this.content = content;
+        this.dateCreated = d1;
+        this.modifiedDate = m1;
+        this.historyID = historyID;
+        this.userID = userID;
+        this.folderID = folderID;
+    }
+    public Note(int noteID, String title, String content, LocalDateTime d1,
                 LocalDateTime m1, int historyID, int userID) {
         this.noteID = noteID;
         this.title = title;
@@ -64,5 +74,7 @@ public void setHistoryID(int h1){
     this.historyID = h1;
 
 }
+public int getFolderID() {
+    return folderID;
 }
-
+}

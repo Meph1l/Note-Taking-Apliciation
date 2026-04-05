@@ -18,7 +18,7 @@
 --
 -- Table structure for table `employees`
 --
-
+USE crud_app;
 DROP TABLE IF EXISTS `employees`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
@@ -49,13 +49,15 @@ UNLOCK TABLES;
 DROP TABLE IF EXISTS `folder`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `folder` (
-  `folderId` int NOT NULL AUTO_INCREMENT,
-  `folderName` varchar(45) NOT NULL,
-  PRIMARY KEY (`folderId`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
+CREATE TABLE folder (
+    folderId       INT          NOT NULL AUTO_INCREMENT,
+    folderName     VARCHAR(255) NOT NULL,
+    userId         INT          NOT NULL,
+    parentFolderId INT          DEFAULT NULL,
+    PRIMARY KEY (folderId),
+    FOREIGN KEY (userId)         REFERENCES users(userid)   ON DELETE CASCADE,
+    FOREIGN KEY (parentFolderId) REFERENCES folder(folderId) ON DELETE CASCADE
+);
 --
 -- Dumping data for table `folder`
 --
@@ -144,15 +146,16 @@ UNLOCK TABLES;
 DROP TABLE IF EXISTS `notes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `notes` (
-  `noteId` int NOT NULL AUTO_INCREMENT,
-  `title` varchar(45) NOT NULL,
-  `content` longtext NOT NULL,
-  `dateCreated` datetime NOT NULL,
-  `modifiedDate` datetime NULL,
-  `historyId` int NOT NULL,
-  `userID` int NOT NULL,
-  PRIMARY KEY (`noteId`)
+CREATE TABLE IF NOT EXISTS notes (
+    noteId       INT          NOT NULL AUTO_INCREMENT,
+    title        VARCHAR(255) NOT NULL DEFAULT 'Untitled',
+    content      TEXT,
+    dateCreated  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    modifiedDate DATETIME     NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    historyId    INT          DEFAULT NULL,
+    folderId     INT          DEFAULT NULL,   -- NEW: links note to a folder
+    PRIMARY KEY (noteId),
+    FOREIGN KEY (folderId) REFERENCES folder(folderId) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -213,6 +216,22 @@ LOCK TABLES `usernotesfoldersgraphs` WRITE;
 INSERT INTO `usernotesfoldersgraphs` VALUES (1,1,1,1),(1,2,1,1),(1,3,1,1);
 /*!40000 ALTER TABLE `usernotesfoldersgraphs` ENABLE KEYS */;
 UNLOCK TABLES;
+
+INSERT IGNORE INTO folder (folderId, folderName, userId, parentFolderId) VALUES
+(1, 'Lecture Notes',  1, NULL),
+(2, 'Assignments',    1, NULL),
+(3, 'Personal',       1, NULL);
+
+-- Sub-folder (Lecture Notes > Week 1)
+INSERT IGNORE INTO folder (folderId, folderName, userId, parentFolderId) VALUES
+(4, 'Week 1', 1, 1);
+
+-- Sample notes assigned to folders
+INSERT IGNORE INTO notes (noteId, title, content, folderId) VALUES
+(1, 'Systems Design Intro',   'Today we covered UML diagrams and use-case modeling.', 1),
+(2, 'Assignment 1',           'Build a class diagram for the note-taking app.',       2),
+(3, 'Meeting Notes',          'Discussed folder module implementation.',               3),
+(4, 'Week 1 – Day 1',         'Introduction to the course.',                          4);
 
 --
 -- Table structure for table `users`

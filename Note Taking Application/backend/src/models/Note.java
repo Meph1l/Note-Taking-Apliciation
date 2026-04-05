@@ -14,6 +14,7 @@ public Note(int u1){
     this.userID = u1;
     this.dateCreated = LocalDateTime.now();
     this.content = "";
+    this.title = "Untitled";
     this.modifiedDate= null;
 }
 public Note(int noteID, String title, String content, LocalDateTime d1,
@@ -42,12 +43,26 @@ public void setTitle(String t1){
 public String getContent(){
     return this.content;
 }
-
 public void setContent (String c1){
     this.content = c1; 
     this.modifiedDate = LocalDateTime.now();
 }
 
+public LocalDateTime getDateCreated (){
+    return this.dateCreated;
+}
+public LocalDateTime getModifiedDate(){
+    return this.modifiedDate;
+}
+public int getHistoryID(){
+    return this.historyID;
+}
+public int getUserID(){
+    return this.userID;
+}
+public void setHistoryID(int h1){
+    this.historyID = h1;
 
+}
 }
 

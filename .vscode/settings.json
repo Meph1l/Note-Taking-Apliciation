@@ -2,5 +2,7 @@
     "java.project.sourcePaths": [
         "Note Taking Application\\backend\\src"
     ],
-    "java.project.referencedLibraries": []
+    "java.project.referencedLibraries": [
+        "Note Taking Application/backend/src/dao/mysql-connector-j-9.6.0.jar"
+    ]
 }

@@ -100,7 +100,7 @@ public class NoteDAO{
             return note1;
     }
     public boolean updateNote(Note note){
-        String sql = "UPDATE Note SET title = ?, content = ?, modifiedDate = ?, historyID = ?, userID = ? WHERE noteID = ?";
+        String sql = "UPDATE notes SET title = ?, content = ?, modifiedDate = ?, historyID = ?, userID = ? WHERE noteID = ?";
 
     try (Connection conn = DBConnection.getConnection();
          PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -127,7 +127,7 @@ public class NoteDAO{
     }
     }
     public boolean deleteNote(int noteID){
-       String sql = "DELETE FROM Note WHERE noteID = ?";
+       String sql = "DELETE FROM notes WHERE noteID = ?";
 
     try (Connection conn = DBConnection.getConnection();
          PreparedStatement stmt = conn.prepareStatement(sql)) {

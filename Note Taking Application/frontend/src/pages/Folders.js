@@ -4,7 +4,15 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Folders.css";
-import { getAuthHeaders, getCurrentUser, logout } from "../Services/authApi.js";
+import { getCurrentUser, logout } from "../Services/authApi.js";
+import { createFolder, getFoldersByUser } from "../Services/folderApi.js";
+import {
+  createNote,
+  deleteNote,
+  getNotesByUser,
+  moveNoteToFolder,
+  updateNote,
+} from "../Services/noteApi.js";
 import {
   createTag as createTagApi,
   getNotesByTag as getNotesByTagApi,
@@ -13,8 +21,6 @@ import {
   removeTagFromNote as removeTagFromNoteApi,
   updateTag as updateTagApi,
 } from "../Services/tagApi.js";
-
-const API = "http://localhost:8800/api";
 
 // Traceability:
 // UC-05 User creates a note.
@@ -99,45 +105,39 @@ export default function Folders() {
     }
   }, [navigate]);
 
+  const handleAuthError = useCallback((error) => {
+    if (error.message === "Authentication required" || error.message === "Invalid or expired token") {
+      logout();
+      navigate("/login");
+      return true;
+    }
+
+    return false;
+  }, [navigate]);
+
   // ─── Data fetching ───────────────────────────────────────────────────────────
 
   const fetchTree = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API}/folders`, {
-        headers: getAuthHeaders()
-      });
-      const data = await res.json();
-
-      if (res.status === 401) {
-        logout();
-        navigate("/login");
-        return;
-      }
-
+      const data = await getFoldersByUser();
       const tree = buildTree(data || []);
       setFolderTree(tree);
     } catch (error) {
       console.error("Error fetching folders:", error);
+      if (handleAuthError(error)) {
+        return;
+      }
       setFolderTree([]);
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [handleAuthError]);
 
   const fetchAllNotes = useCallback(async () => {
     try {
-      const res = await fetch(`${API}/notes`, {
-        headers: getAuthHeaders()
-      });
-      const data = await res.json();
+      const data = await getNotesByUser();
 
-      if (res.status === 401) {
-        logout();
-        navigate("/login");
-        return;
-      }
-      
       // Group notes by folderId
       const grouped = {};
       data.forEach(note => {
@@ -151,9 +151,12 @@ export default function Folders() {
       setAllNotes(grouped);
     } catch (error) {
       console.error("Error fetching all notes:", error);
+      if (handleAuthError(error)) {
+        return;
+      }
       setAllNotes({});
     }
-  }, [navigate]);
+  }, [handleAuthError]);
 
   const fetchTagsForNote = useCallback(async (noteId) => {
     if (!noteId) {
@@ -166,14 +169,12 @@ export default function Folders() {
       setNoteTags(tags);
     } catch (error) {
       console.error("Error fetching note tags:", error);
-      if (error.message === "Authentication required" || error.message === "Invalid or expired token") {
-        logout();
-        navigate("/login");
+      if (handleAuthError(error)) {
         return;
       }
       setNoteTags([]);
     }
-  }, [navigate]);
+  }, [handleAuthError]);
 
   const fetchAvailableTags = useCallback(async () => {
     try {
@@ -182,15 +183,13 @@ export default function Folders() {
       return tags;
     } catch (error) {
       console.error("Error fetching all tags:", error);
-      if (error.message === "Authentication required" || error.message === "Invalid or expired token") {
-        logout();
-        navigate("/login");
+      if (handleAuthError(error)) {
         return [];
       }
       setAvailableTags([]);
       return [];
     }
-  }, [navigate]);
+  }, [handleAuthError]);
 
   const applyTagFilter = useCallback(async (tagId, fallbackName = "") => {
     try {
@@ -298,71 +297,53 @@ export default function Folders() {
   // Traceability: UC-18 creates a folder from the folders page.
   const handleCreate = async () => {
     if (!inputValue.trim()) return;
-    const body = { folderName: inputValue.trim() };
-    const res = await fetch(`${API}/folders`, {
-      method: "POST", headers: getAuthHeaders(true), body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (res.ok) {
+
+    try {
+      await createFolder(inputValue.trim());
       showStatus("Folder created!");
-      fetchTree();
-      setModal(null);
-      setInputValue("");
-    } else {
-      showStatus(data.error || "Error creating folder.", true);
+      await fetchTree();
+      closeModal();
+    } catch (error) {
+      if (handleAuthError(error)) {
+        return;
+      }
+      showStatus(error.message || "Error creating folder.", true);
     }
   };
 
   // Traceability: UC-05 and UC-06 create a note with initial text content.
   const handleCreateNote = async () => {
     const title = createNoteTitle.trim() || "untitled";
-    const body = {
-      title,
-      content: createNoteContent || "",
-      folderId: null,
-    };
 
-    const res = await fetch(`${API}/notes`, {
-      method: "POST",
-      headers: getAuthHeaders(true),
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-
-    if (res.ok) {
+    try {
+      const data = await createNote(title, createNoteContent || "", null);
       showStatus("Note created!");
-      fetchAllNotes();
-      setModal(null);
-      setCreateNoteTitle("untitled");
-      setCreateNoteContent("");
+      await fetchAllNotes();
+      closeModal();
       if (data.note) {
         setSelectedNote(data.note);
       }
-    } else {
-      showStatus(data.error || "Error creating note.", true);
+    } catch (error) {
+      if (handleAuthError(error)) {
+        return;
+      }
+      showStatus(error.message || "Error creating note.", true);
     }
   };
 
   // Traceability: UC-07, UC-08, and UC-17 persist note content and title changes.
   const handleSaveNote = async () => {
     if (!selectedNote) return;
-    
-    const body = { 
-      title: selectedNote.title, 
-      content: selectedNote.content || '' 
-    };
-    
-    const res = await fetch(`${API}/notes/${selectedNote.noteId}`, {
-      method: "PUT", 
-      headers: getAuthHeaders(true), 
-      body: JSON.stringify(body),
-    });
-    
-    if (res.ok) { 
+
+    try {
+      await updateNote(selectedNote.noteId, selectedNote.title, selectedNote.content || "");
       showStatus("Note saved!");
-      fetchAllNotes(); // Refresh notes to show updated data
-    } else {
-      showStatus("Error saving note.", true);
+      await fetchAllNotes();
+    } catch (error) {
+      if (handleAuthError(error)) {
+        return;
+      }
+      showStatus(error.message || "Error saving note.", true);
     }
   };
 
@@ -439,39 +420,40 @@ export default function Folders() {
   const handleMoveNoteToFolder = async () => {
     if (!modal?.note) return;
     const folderId = noteActionTargetFolder === "" ? null : Number(noteActionTargetFolder);
-    const res = await fetch(`${API}/notes/${modal.note.noteId}/move`, {
-      method: "PUT",
-      headers: getAuthHeaders(true),
-      body: JSON.stringify({ folderId }),
-    });
-    if (res.ok) {
+
+    try {
+      await moveNoteToFolder(modal.note.noteId, folderId);
       showStatus("Note moved!");
-      fetchAllNotes();
-      setModal(null);
-    } else {
-      showStatus("Error moving note.", true);
+      await fetchAllNotes();
+      closeModal();
+    } catch (error) {
+      if (handleAuthError(error)) {
+        return;
+      }
+      showStatus(error.message || "Error moving note.", true);
     }
   };
 
   // Traceability: UC-10 deletes the selected note.
   const handleDeleteNote = async () => {
     if (!modal?.note) return;
-    const res = await fetch(`${API}/notes/${modal.note.noteId}`, {
-      method: "DELETE",
-      headers: getAuthHeaders()
-    });
-    if (res.ok) {
+
+    try {
+      await deleteNote(modal.note.noteId);
       showStatus("Note deleted!");
       if (selectedNote?.noteId === modal.note.noteId) setSelectedNote(null);
-      fetchAllNotes();
+      await fetchAllNotes();
 
       if (activeTagFilter) {
         await applyTagFilter(activeTagFilter.tagId, activeTagFilter.tagName);
       }
 
-      setModal(null);
-    } else {
-      showStatus("Error deleting note.", true);
+      closeModal();
+    } catch (error) {
+      if (handleAuthError(error)) {
+        return;
+      }
+      showStatus(error.message || "Error deleting note.", true);
     }
   };
 

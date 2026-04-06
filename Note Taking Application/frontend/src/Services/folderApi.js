@@ -1,5 +1,6 @@
-const API_URL = "http://localhost:8800/api/folders";
 import { getAuthHeaders } from "./authApi.js";
+const API_URL = "http://localhost:8800/api/folders";
+
 
 // Get all folders for the authenticated user
 export const getFoldersByUser = async () => {

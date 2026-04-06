@@ -1,5 +1,6 @@
-const API_URL = "http://localhost:8800/api/notes";
 import { getAuthHeaders } from "./authApi.js";
+const API_URL = "http://localhost:8800/api/notes";
+
 
 // Get all notes for the authenticated user
 export const getNotesByUser = async () => {

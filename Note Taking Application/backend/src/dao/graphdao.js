@@ -2,6 +2,10 @@ import db from "../config/db.js";
 import Graph from "../models/graph.js";
 import Note from "../models/note.js";
 
+// Traceability:
+// UC-12 User merges notes into a visual representation using tags.
+// UC-24 User organizes the visual display of notes.
+
 const toGraph = (row) => new Graph(
   row.graphId,
   row.graphName ?? row.graphname,
@@ -20,6 +24,7 @@ const toNote = (row) => new Note(
   row.userId
 );
 
+// Traceability: UC-12 resolves which selected tags belong to the user.
 const getTagsByIds = async (tagIds, userId) => {
   if (!tagIds.length) {
     return [];
@@ -37,6 +42,7 @@ const getTagsByIds = async (tagIds, userId) => {
   return rows;
 };
 
+// Traceability: UC-12 loads notes and matching tags for graph generation.
 const getNoteRowsByTagIds = async (tagIds, userId) => {
   if (!tagIds.length) {
     return [];
@@ -67,6 +73,7 @@ const getNoteRowsByTagIds = async (tagIds, userId) => {
   return rows;
 };
 
+// Traceability: UC-24 validates graph nodes against the user's notes.
 const getNotesByIds = async (noteIds, userId) => {
   if (!noteIds.length) {
     return [];
@@ -84,6 +91,7 @@ const getNotesByIds = async (noteIds, userId) => {
   return rows.map(toNote);
 };
 
+// Traceability: UC-24 lists saved graph layouts for the user.
 const getGraphsByUserId = async (userId) => {
   const sql = `
     SELECT graphId, graphname AS graphName, userId, dateCreated, updatedAt
@@ -112,6 +120,7 @@ const getGraphById = async (graphId, userId) => {
   return toGraph(rows[0]);
 };
 
+// Traceability: UC-24 loads a saved graph with nodes, edges, and tags.
 const getGraphDetailsById = async (graphId, userId) => {
   const graph = await getGraphById(graphId, userId);
 
@@ -245,6 +254,7 @@ const getGraphDetailsById = async (graphId, userId) => {
   };
 };
 
+// Traceability: UC-12 and UC-24 persist the graph structure, node layout, and edges.
 const persistGraphStructure = async (connection, graphId, tagIds, nodes, edges) => {
   await connection.query(`DELETE FROM graph_edges WHERE graphId = ?`, [graphId]);
   await connection.query(`DELETE FROM graph_nodes WHERE graphId = ?`, [graphId]);
@@ -301,6 +311,7 @@ const persistGraphStructure = async (connection, graphId, tagIds, nodes, edges) 
   }
 };
 
+// Traceability: UC-12 and UC-24 create a saved graph record.
 const saveGraph = async (graphName, userId, tagIds, nodes, edges) => {
   const connection = db.promise();
 
@@ -326,6 +337,7 @@ const saveGraph = async (graphName, userId, tagIds, nodes, edges) => {
   }
 };
 
+// Traceability: UC-24 updates an existing saved graph.
 const updateGraph = async (graphId, graphName, userId, tagIds, nodes, edges) => {
   const connection = db.promise();
 

@@ -1,5 +1,10 @@
 import userDAO from "../dao/userdao.js";
 
+// Traceability:
+// UC-01 User creates an account.
+// UC-02 User logs in.
+
+// Traceability: UC-02 authenticates the user and records a successful login.
 // Login user with email + password
 const login = async (email, password) => {
   // Step 1: find matching user
@@ -20,6 +25,7 @@ const login = async (email, password) => {
   return user;
 };
 
+// Traceability: UC-01 validates uniqueness and creates a new user account.
 // Register new user
 const register = async (email, password) => {
   // Step 1: check if email already exists

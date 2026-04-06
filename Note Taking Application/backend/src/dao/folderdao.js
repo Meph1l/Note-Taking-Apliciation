@@ -1,6 +1,11 @@
 import db from "../config/db.js";
 import Folder from "../models/folder.js";  
 
+// Traceability:
+// UC-18 User creates a folder.
+// UC-19 User deletes a folder.
+// UC-20 User renames the title of the folder.
+
 // Get all folders for a specific user
 const getFoldersByUserId = (userId) => {
   return new Promise((resolve, reject) => {
@@ -58,6 +63,7 @@ const getFolderById = (folderId, userId) => {
   });
 };
 
+// Traceability: UC-18 and UC-20 check for duplicate folder names in the same scope.
 // Check whether a folder with the same name already exists under the same parent
 const findFolderByNameAndParent = (folderName, userId, parentFolderId = null) => {
   return new Promise((resolve, reject) => {
@@ -100,6 +106,7 @@ const findFolderByNameAndParent = (folderName, userId, parentFolderId = null) =>
   });
 };
 
+// Traceability: UC-18 inserts a new folder record.
 // Create a new folder
 const createFolder = (folderName, userId, parentFolderId = null) => {
   return new Promise((resolve, reject) => {
@@ -123,6 +130,7 @@ const createFolder = (folderName, userId, parentFolderId = null) => {
   });
 };
 
+// Traceability: UC-20 updates the folder title.
 // Rename folder
 const renameFolder = (folderId, folderName, userId) => {
   return new Promise((resolve, reject) => {
@@ -139,6 +147,7 @@ const renameFolder = (folderId, folderName, userId) => {
   });
 };
 
+// Traceability: UC-19 deletes the folder record.
 // Delete folder by folderId
 const deleteFolder = (folderId, userId) => {
   return new Promise((resolve, reject) => {

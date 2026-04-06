@@ -3,6 +3,9 @@ import "./style.css";
 import "bootstrap/dist/css/bootstrap.css";
 import { useNavigate } from "react-router-dom";
 
+// Traceability:
+// UC-01 User creates an account.
+
 const Register = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -11,6 +14,7 @@ const Register = () => {
 
   const navigate = useNavigate();
 
+  // Traceability: UC-01 creates a new user account through the auth API.
   const handleRegister = async () => {
     setErrorMsg("");
 

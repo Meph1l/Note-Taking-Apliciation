@@ -4,6 +4,9 @@ import 'bootstrap/dist/css/bootstrap.css';
 import { useNavigate } from "react-router-dom";
 import { login } from "../Services/authApi.js";
 
+// Traceability:
+// UC-02 User logs in.
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,6 +16,7 @@ const Login = () => {
 
   const navigate = useNavigate();
 
+  // Traceability: UC-02 validates credentials and starts the authenticated session.
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMsg("");

@@ -1,6 +1,11 @@
 import db from "../config/db.js";
 import User from "../models/user.js";
 
+// Traceability:
+// UC-01 User creates an account.
+// UC-02 User logs in.
+
+// Traceability: UC-02 checks stored credentials for login.
 // Find user by email and password for login
 const findByEmailAndPassword = (email, password) => {
   return new Promise((resolve, reject) => {
@@ -30,6 +35,7 @@ const findByEmailAndPassword = (email, password) => {
   });
 };
 
+// Traceability: UC-02 records a successful login event.
 // Increment login count after successful login
 const incrementLoginCount = (userId) => {
   return new Promise((resolve, reject) => {
@@ -42,6 +48,7 @@ const incrementLoginCount = (userId) => {
   });
 };
 
+// Traceability: UC-01 checks whether the email is already registered.
 // Check whether email already exists before registration
 const findByEmail = (email) => {
   return new Promise((resolve, reject) => {
@@ -71,6 +78,7 @@ const findByEmail = (email) => {
   });
 };
 
+// Traceability: UC-01 inserts the newly registered user.
 // Create user during registration
 // Username is optional at registration in your project, so we insert NULL
 const createUser = (email, password) => {

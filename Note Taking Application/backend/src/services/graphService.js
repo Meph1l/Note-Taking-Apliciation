@@ -1,6 +1,10 @@
 import graphDAO from "../dao/graphdao.js";
 import { buildMergeResearch } from "./graphResearchService.js";
 
+// Traceability:
+// UC-12 User merges notes into a visual representation using tags.
+// UC-24 User organizes the visual display of notes.
+
 const normalizeIds = (values = []) => {
   return [...new Set(
     values
@@ -18,6 +22,7 @@ const buildDefaultGraphName = (tags = []) => {
   return tags.length > 2 ? `${base} + more` : `${base} Merge`;
 };
 
+// Traceability: UC-12 assembles the merged note graph preview from selected tags.
 const generatePreview = async (tagIds, userId) => {
   const normalizedTagIds = normalizeIds(tagIds);
 
@@ -75,6 +80,7 @@ const getGraphsByUser = async (userId) => {
   return await graphDAO.getGraphsByUserId(userId);
 };
 
+// Traceability: UC-24 loads a saved graph layout for further organization.
 const getGraphById = async (graphId, userId) => {
   const details = await graphDAO.getGraphDetailsById(graphId, userId);
 
@@ -148,6 +154,7 @@ const sanitizeGraphPayload = async ({ graphName, tagIds, nodes, edges }, userId)
   };
 };
 
+// Traceability: UC-12 and UC-24 save a generated graph and its layout.
 const saveGraph = async (payload, userId) => {
   const {
     finalGraphName,
@@ -159,6 +166,7 @@ const saveGraph = async (payload, userId) => {
   return await graphDAO.saveGraph(finalGraphName, userId, normalizedTagIds, sanitizedNodes, sanitizedEdges);
 };
 
+// Traceability: UC-24 updates the layout of an existing graph.
 const updateGraph = async (graphId, payload, userId) => {
   const {
     finalGraphName,

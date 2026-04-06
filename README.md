@@ -189,14 +189,21 @@ npm run build
 
 ---
 
-## Future Improvements
+## Pending Use Cases
 
-Possible next improvements:
-- delete saved graphs
-- rename saved graphs from the graph list
-- export graph view as an image or PDF
-- search notes and graphs
-- better graph auto-layout
+The following use cases are not fully implemented in the current codebase:
+
+- UC-03 User reset password.
+- UC-04 User change password.
+- UC-06 User insert content into the note using drawing tools. Text entry is implemented, but drawing is not.
+- UC-14 User search notes by keywords.
+- UC-16 User re-arrange notes by ascending date or descending date from the notes UI.
+- UC-19 User delete folder. Backend support exists, but the current folders UI does not expose this flow.
+- UC-20 User rename the title of the folder. Backend support exists, but the current folders UI does not expose this flow.
+- UC-21 User view notes version history. The schema includes history storage, but no API or UI flow is implemented.
+- UC-22 Admin get system performance report.
+- UC-23 Admin manage users.
+- UC-25 User export note as PDF.
 
 ---
 

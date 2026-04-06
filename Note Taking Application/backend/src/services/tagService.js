@@ -1,10 +1,16 @@
 import tagDAO from "../dao/tagdao.js";
 import noteDAO from "../dao/notedao.js";
 
+// Traceability:
+// UC-09 User tags a note.
+// UC-15 User searches notes by tags.
+
+// Traceability: UC-15 loads the user's available tags.
 const getTagsByUser = async (userId) => {
   return await tagDAO.getTagsByUserId(userId);
 };
 
+// Traceability: UC-09 loads tags attached to a specific note.
 const getTagsByNote = async (noteId, userId) => {
   const existingNote = await noteDAO.getNoteById(noteId, userId);
 
@@ -15,6 +21,7 @@ const getTagsByNote = async (noteId, userId) => {
   return await tagDAO.getTagsByNoteId(noteId, userId);
 };
 
+// Traceability: UC-15 finds notes that match a selected tag.
 const getNotesByTag = async (tagId, userId) => {
   const existingTag = await tagDAO.getTagById(tagId, userId);
 
@@ -26,6 +33,7 @@ const getNotesByTag = async (tagId, userId) => {
   return { tag: existingTag, notes };
 };
 
+// Traceability: UC-09 creates a tag if needed and attaches it to a note.
 const createTag = async (tagName, userId, noteId = null) => {
   const normalizedTagName = tagName?.trim();
 
@@ -56,6 +64,7 @@ const createTag = async (tagName, userId, noteId = null) => {
   return { tag, created };
 };
 
+// Traceability: UC-09 renames an existing tag.
 const updateTag = async (tagId, tagName, userId) => {
   const normalizedTagName = tagName?.trim();
 
@@ -79,6 +88,7 @@ const updateTag = async (tagId, tagName, userId) => {
   return true;
 };
 
+// Traceability: UC-09 removes a tag from a note.
 const removeTagFromNote = async (tagId, noteId, userId) => {
   const existingNote = await noteDAO.getNoteById(noteId, userId);
 

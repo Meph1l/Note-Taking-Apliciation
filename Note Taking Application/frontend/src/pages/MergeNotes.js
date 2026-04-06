@@ -5,6 +5,10 @@ import { getCurrentUser, logout } from "../Services/authApi.js";
 import { getTagsByUser } from "../Services/tagApi.js";
 import { generateMergePreview, getSavedGraphs, saveGraph as saveGraphApi } from "../Services/graphApi.js";
 
+// Traceability:
+// UC-12 User merges notes into a visual representation using tags.
+// UC-24 User organizes the visual display of notes by dragging graph nodes.
+
 export default function MergeNotes() {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
@@ -119,6 +123,7 @@ export default function MergeNotes() {
     );
   };
 
+  // Traceability: UC-12 generates the tag-based visual merge preview.
   const handleGenerateGraph = async () => {
     if (selectedTagIds.length === 0) {
       showStatus("Please select at least one tag.", true);
@@ -144,6 +149,7 @@ export default function MergeNotes() {
     }
   };
 
+  // Traceability: UC-24 persists the user-organized graph layout.
   const handleSaveGraph = async () => {
     if (nodes.length === 0) {
       showStatus("Generate a merge graph before saving.", true);

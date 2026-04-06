@@ -16,6 +16,19 @@ import {
 
 const API = "http://localhost:8800/api";
 
+// Traceability:
+// UC-05 User creates a note.
+// UC-06 User inserts note content through text editing in the UI.
+// UC-07 User saves a note.
+// UC-08 User modifies a note.
+// UC-09 User tags a note.
+// UC-10 User deletes a note.
+// UC-11 User reads a note.
+// UC-13 User relocates notes into another folder.
+// UC-15 User searches notes by tags.
+// UC-17 User renames the title of the note.
+// UC-18 User creates a folder.
+
 // ─── Small helper components ──────────────────────────────────────────────────
 
 function FolderNode({ folder, selectedId, onSelect, onRename, onDelete, onCreateSub, level = 0 }) {
@@ -282,7 +295,7 @@ export default function Folders() {
     setFilteredNotes([]);
   };
 
-  // UC-18: Create Folder
+  // Traceability: UC-18 creates a folder from the folders page.
   const handleCreate = async () => {
     if (!inputValue.trim()) return;
     const body = { folderName: inputValue.trim() };
@@ -300,6 +313,7 @@ export default function Folders() {
     }
   };
 
+  // Traceability: UC-05 and UC-06 create a note with initial text content.
   const handleCreateNote = async () => {
     const title = createNoteTitle.trim() || "untitled";
     const body = {
@@ -329,7 +343,7 @@ export default function Folders() {
     }
   };
 
-  // Save Note Changes
+  // Traceability: UC-07, UC-08, and UC-17 persist note content and title changes.
   const handleSaveNote = async () => {
     if (!selectedNote) return;
     
@@ -352,6 +366,7 @@ export default function Folders() {
     }
   };
 
+  // Traceability: UC-09 attaches a tag to the selected note.
   const handleCreateTag = async () => {
     if (!selectedNote || !inputValue.trim()) return;
 
@@ -366,6 +381,7 @@ export default function Folders() {
     }
   };
 
+  // Traceability: UC-15 filters notes by the selected tag.
   const handleApplyTagFilter = async () => {
     if (!selectedTagId) return;
 
@@ -376,6 +392,7 @@ export default function Folders() {
     closeModal();
   };
 
+  // Traceability: UC-09 updates an existing tag label.
   const handleEditTag = async () => {
     if (!selectedNote || !selectedTagId || !inputValue.trim()) return;
 
@@ -395,6 +412,7 @@ export default function Folders() {
     }
   };
 
+  // Traceability: UC-09 removes a tag association from the selected note.
   const handleRemoveTag = async (tagId) => {
     if (!selectedNote) return;
 
@@ -417,6 +435,7 @@ export default function Folders() {
     setModal({ type: "noteActions", note });
   };
 
+  // Traceability: UC-13 moves a note to a different folder or back to unfoldered.
   const handleMoveNoteToFolder = async () => {
     if (!modal?.note) return;
     const folderId = noteActionTargetFolder === "" ? null : Number(noteActionTargetFolder);
@@ -434,6 +453,7 @@ export default function Folders() {
     }
   };
 
+  // Traceability: UC-10 deletes the selected note.
   const handleDeleteNote = async () => {
     if (!modal?.note) return;
     const res = await fetch(`${API}/notes/${modal.note.noteId}`, {
@@ -457,6 +477,7 @@ export default function Folders() {
 
   // ─── Render ──────────────────────────────────────────────────────────────────
 
+  // Traceability: UC-11 lets the user open and read a note from the tree.
   // Helper function to render folder tree item
   const renderFolderItem = (folder) => {
     const isExpanded = expandedFolders.has(folder.folderId);

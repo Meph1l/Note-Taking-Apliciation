@@ -5,6 +5,9 @@ import { getGraphById, getSavedGraphs, updateGraph } from "../Services/graphApi.
 import "./Folders.css";
 import "./MergeNotes.css";
 
+// Traceability:
+// UC-24 User reorganizes previously saved visual note layouts.
+
 export default function GraphsList() {
   const navigate = useNavigate();
   const canvasRef = useRef(null);
@@ -107,6 +110,7 @@ export default function GraphsList() {
     return { width, height };
   }, [nodes]);
 
+  // Traceability: UC-24 opens a saved graph for additional layout changes.
   const openGraph = async (graph) => {
     setLoadingGraph(true);
 
@@ -141,6 +145,7 @@ export default function GraphsList() {
     });
   };
 
+  // Traceability: UC-24 saves the updated positions of notes in the graph.
   const handleSaveGraph = async () => {
     if (!selectedGraph) {
       showStatus("Select a graph first.", true);

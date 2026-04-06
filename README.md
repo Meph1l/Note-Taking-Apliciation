@@ -112,7 +112,6 @@ Open a second integrated terminal in:
 `Note Taking Application/frontend`
 
 ```bash
-npx create-react-app 
 npm install react-router-dom bootstrap@v5.3.8 axios
 ```
 

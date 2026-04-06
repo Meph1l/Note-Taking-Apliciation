@@ -115,6 +115,7 @@ UNLOCK TABLES;
 
 --
 -- Save which tags were selected for the merge
+drop table if exists `graph_tags`;
 CREATE TABLE IF NOT EXISTS graph_tags (
   graphId INT NOT NULL,
   tagId INT NOT NULL,
@@ -127,6 +128,7 @@ CREATE TABLE IF NOT EXISTS graph_tags (
     ON DELETE CASCADE
 );
 -- Save each note rectangle and its dragged position
+DROP TABLE IF EXISTS `graph_nodes`;
 CREATE TABLE IF NOT EXISTS graph_nodes (
   graphNodeId INT NOT NULL AUTO_INCREMENT,
   graphId INT NOT NULL,
@@ -146,6 +148,7 @@ CREATE TABLE IF NOT EXISTS graph_nodes (
     ON DELETE CASCADE
 );
 -- Save the connection lines between notes 
+DROP TABLE IF EXISTS `graph_edges`;
 CREATE TABLE IF NOT EXISTS graph_edges (
   graphEdgeId INT NOT NULL AUTO_INCREMENT,
   graphId INT NOT NULL,
@@ -171,6 +174,7 @@ CREATE TABLE IF NOT EXISTS graph_edges (
     CHECK (sourceNodeId <> targetNodeId)
 );
 -- Identify which notes are connected by shared tags.
+DROP VIEW IF EXISTS `vw_note_tag_relationships`;
 CREATE OR REPLACE VIEW vw_note_tag_relationships AS
 SELECT
   n1.userId,

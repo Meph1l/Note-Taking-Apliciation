@@ -104,7 +104,7 @@ Open an integrated terminal in:
 `Note Taking Application/backend`
 
 ```bash
-npm install express mysql nodemon cors
+npm install express mysql2 nodemon cors
 ```
 
 ### Frontend

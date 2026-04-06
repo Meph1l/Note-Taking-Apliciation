@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import "./style.css";
 import "bootstrap/dist/css/bootstrap.css";
 import { useNavigate } from "react-router-dom";
+import { register } from "../Services/authApi.js";
 
 // Traceability:
 // UC-01 User creates an account.
@@ -29,29 +30,17 @@ const Register = () => {
     }
 
     try {
-      const res = await fetch("http://localhost:8800/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email,
-          password
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setErrorMsg(data.error || "Registration failed.");
-        return;
-      }
+      await register(email, password);
 
       alert("Registration successful! Please log in.");
       navigate("/login");
     } catch (error) {
       console.error("Register error:", error);
-      setErrorMsg("Server error. Please try again later.");
+      if (error.message === "Failed to fetch") {
+        setErrorMsg("Server error. Please try again later.");
+      } else {
+        setErrorMsg(error.message || "Registration failed.");
+      }
     }
   };
 
